@@ -1,20 +1,12 @@
-ifeq ($(FINALPACKAGE),1)
-	ARCHS = arm64 arm64e
-else
-	ARCHS = arm64
-endif
-TARGET = iphone:clang:11.2:11.0 #12.2 my Xcode SDK, 11.0 my iOS target
-
-include $(THEOS)/makefiles/common.mk
-
+export TARGET = iphone:clang:16.5:15.0
+export ARCHS = arm64 arm64e
 BUNDLE_NAME = PanCakePrefs
 $(BUNDLE_NAME)_FILES = Preferences.m
 $(BUNDLE_NAME)_INSTALL_PATH = /Library/PreferenceBundles
 $(BUNDLE_NAME)_FRAMEWORKS = UIKit
-$(BUNDLE_NAME)_LIBRARIES = applist
 $(BUNDLE_NAME)_PRIVATE_FRAMEWORKS = Preferences
-$(BUNDLE_NAME)_EXTRA_FRAMEWORKS = Cephei CepheiPrefs
-
+$(BUNDLE_NAME)_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -O3
+include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/bundle.mk
 
 before-all::
