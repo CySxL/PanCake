@@ -1,70 +1,89 @@
+#include <spawn.h>
+#include <sys/wait.h>
 #import "Preferences.h"
+#import <roothide.h>
 
-#define prefPath [NSString stringWithFormat:@"%@/Library/Preferences/%@", NSHomeDirectory(), @"com.anthopak.pancake.plist"]
+#define prefPath jbroot(@"/var/mobile/Library/Preferences/com.anthopak.pancake.plist")
 #define headerColor [UIColor colorWithRed:0.192 green:0.298 blue:0.365 alpha:1]
 
 static NSInteger headerPaddingTopBottom = 40;
 static NSInteger headerPaddingLeftRight = 10;
 
+@interface PCPrefsListController ()
+@property (nonatomic, retain) UIColor *savedTintColor;
+@end
+
 @implementation PCPrefsListController
 
 - (instancetype)init {
     self = [super init];
-
     if (self) {
-        HBAppearanceSettings *appearanceSettings = [[HBAppearanceSettings alloc] init];
-        // appearanceSettings.tintColor = [UIColor colorWithRed:0.1f green:0.1f blue:0.1f alpha:1];
-        appearanceSettings.tableViewCellSeparatorColor = [UIColor colorWithWhite:0 alpha:0];
-        appearanceSettings.navigationBarBackgroundColor = [self getHeaderColorFromColor:headerColor];
-        appearanceSettings.tintColor = headerColor;
-        appearanceSettings.statusBarTintColor = [UIColor whiteColor];
-        appearanceSettings.navigationBarTintColor = [UIColor whiteColor];
-        appearanceSettings.navigationBarTitleColor = [UIColor whiteColor];
-        self.hb_appearanceSettings = appearanceSettings;
-
+        [[NSBundle bundleWithPath:jbroot(@"/Library/Frameworks/AltList.framework")] load];
         [self setupNavigationTitleView];
         [self setupNavigationRespringButton];
     }
-
     return self;
 }
 
--(void) viewDidLoad {
+-(void)viewDidLoad {
     [super viewDidLoad];
-
     [self setupHeaderView];
-
     self.table.keyboardDismissMode = UIScrollViewKeyboardDismissModeOnDrag;
+    
+    if (@available(iOS 15.0, *)) {
+        UINavigationBarAppearance *appearance = [[UINavigationBarAppearance alloc] init];
+        [appearance configureWithOpaqueBackground];
+        appearance.backgroundColor = [self getHeaderColorFromColor:headerColor];
+        appearance.shadowColor = [UIColor clearColor];
+        
+        self.navigationItem.standardAppearance = appearance;
+        self.navigationItem.scrollEdgeAppearance = appearance;
+        self.navigationItem.compactAppearance = appearance;
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-
     CGRect frame = self.table.bounds;
     frame.origin.y = -frame.size.height;
 
-    self.navigationController.navigationController.navigationBar.barTintColor = [self getHeaderColorFromColor:headerColor];
-    [self.navigationController.navigationController.navigationBar setShadowImage: [UIImage new]];
-    self.navigationController.navigationController.navigationBar.tintColor = [UIColor whiteColor];
-    // self.navigationController.navigationController.navigationBar.translucent = NO;
+    UINavigationBar *navBar = self.navigationController.navigationController.navigationBar ?: self.navigationController.navigationBar;
+    
+    if (navBar) {
+        self.savedTintColor = navBar.tintColor;
+        navBar.tintColor = [UIColor whiteColor];
+    }
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    
+    UINavigationBar *navBar = self.navigationController.navigationController.navigationBar ?: self.navigationController.navigationBar;
+    if (navBar && self.savedTintColor) {
+        navBar.tintColor = self.savedTintColor;
+    }
 }
 
 - (id)specifiers {
     if(_specifiers == nil) {
-        _specifiers = [[self loadSpecifiersFromPlistName:@"Prefs" target:self] retain];
+        _specifiers = [self loadSpecifiersFromPlistName:@"Prefs" target:self];
     }
     return _specifiers;
 }
 
 - (void)respring:(id)sender {
-    [HBRespringController respring];
+    // Resolve killall through the NSString jbroot() variant, then hand posix_spawn a
+    // guaranteed-valid C path via fileSystemRepresentation (avoids relying on a
+    // C-string jbroot() overload existing in the SDK).
+    const char *killallPath = [jbroot(@"/usr/bin/killall") fileSystemRepresentation];
+    const char *argv[] = {"killall", "-9", "SpringBoard", NULL};
+    pid_t pid = 0;
+    if (posix_spawn(&pid, killallPath, NULL, NULL, (char *const *)argv, NULL) == 0) {
+        waitpid(pid, NULL, 0);
+    }
 }
 
-
-#pragma mark - Header style
-//Courtesy of Nepeta (Axon)
-
--(void) setupNavigationTitleView {
+-(void)setupNavigationTitleView {
     self.navigationItem.titleView = [UIView new];
     self.titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0,0,10,10)];
     self.titleLabel.font = [UIFont boldSystemFontOfSize:17];
@@ -76,7 +95,7 @@ static NSInteger headerPaddingLeftRight = 10;
 
     self.iconView = [[UIImageView alloc] initWithFrame:CGRectMake(0,0,10,10)];
     self.iconView.contentMode = UIViewContentModeScaleAspectFit;
-    self.iconView.image = [UIImage imageWithContentsOfFile:@"/Library/PreferenceBundles/PanCakePrefs.bundle/icon_transparent.png"];    
+    self.iconView.image = [UIImage imageWithContentsOfFile:jbroot(@"/Library/PreferenceBundles/PanCakePrefs.bundle/icon_transparent.png")];    
     self.iconView.translatesAutoresizingMaskIntoConstraints = NO;
     self.iconView.alpha = 0.0;
     [self.navigationItem.titleView addSubview:self.iconView];
@@ -93,20 +112,16 @@ static NSInteger headerPaddingLeftRight = 10;
     ]];
 }
 
--(void) setupNavigationRespringButton {
-    self.respringButton = [[UIBarButtonItem alloc] initWithTitle:@"Respring" 
-                                style:UIBarButtonItemStylePlain
-                                target:self 
-                                action:@selector(respring:)];
+-(void)setupNavigationRespringButton {
+    self.respringButton = [[UIBarButtonItem alloc] initWithTitle:@"Respring" style:UIBarButtonItemStylePlain target:self action:@selector(respring:)];
     self.respringButton.tintColor = [UIColor whiteColor];
-//    self.navigationItem.rightBarButtonItem = self.respringButton;
 }
 
--(void) setupHeaderView {
+-(void)setupHeaderView {
     self.headerView = [[UIView alloc] initWithFrame:CGRectMake(0,0,200,200)];
     self.headerImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0,0,200,200)];
     self.headerImageView.contentMode = UIViewContentModeScaleAspectFill;
-    self.headerImageView.image = [UIImage imageWithContentsOfFile:@"/Library/PreferenceBundles/PanCakePrefs.bundle/header.png"];
+    self.headerImageView.image = [UIImage imageWithContentsOfFile:jbroot(@"/Library/PreferenceBundles/PanCakePrefs.bundle/header.png")];
     self.headerImageView.translatesAutoresizingMaskIntoConstraints = NO;
 
     [self.headerView addSubview:self.headerImageView];
@@ -122,7 +137,6 @@ static NSInteger headerPaddingLeftRight = 10;
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     CGFloat offsetY = scrollView.contentOffset.y;
-
     if (offsetY > 70) {
         [UIView animateWithDuration:0.2 animations:^{
             self.iconView.alpha = 1.0;
@@ -135,51 +149,51 @@ static NSInteger headerPaddingLeftRight = 10;
         }];
     }
     
-    if (offsetY > -headerPaddingTopBottom/2) offsetY = -headerPaddingTopBottom/2; //have incidence on "padding bottom" under image while scrolling down
+    if (offsetY > -headerPaddingTopBottom/2) offsetY = -headerPaddingTopBottom/2;
     self.headerImageView.frame = CGRectMake(headerPaddingLeftRight, offsetY + 64 + headerPaddingTopBottom, self.headerView.frame.size.width - headerPaddingLeftRight*2, 200 - offsetY - 64 - headerPaddingTopBottom*2);
 }
 
 - (double)tableView:(UITableView*)tableView heightForHeaderInSection:(NSInteger)section {
-    if (section == 0 || section == 4) {
-        return 0;
-    } else if (section == 3) { //my other tweaks
-        return 60;
-    } else {
-        return 45;
-    }
+    // Sections: 0 top-spacer, 1 back-gesture, 2 restore, 3 blacklist, 4 haptic,
+    //           5 springboard, 6 my-other-tweaks, 7 empty-spacer (before social).
+    if (section == 0 || section == 7) return 0;
+    if (section == 6) return 60;
+    return 45;
 }
-
 
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
     [super setPreferenceValue:value specifier:specifier];
     
-    NSMutableDictionary *preferences = [NSMutableDictionary dictionaryWithContentsOfFile:prefPath];
+    NSDictionary *existingPrefs = [NSDictionary dictionaryWithContentsOfFile:prefPath];
+    NSUInteger capacity = existingPrefs ? existingPrefs.count + 1 : 1;
+    NSMutableDictionary *preferences = [[NSMutableDictionary alloc] initWithCapacity:capacity];
+    
+    if (existingPrefs) {
+        [preferences addEntriesFromDictionary:existingPrefs];
+    }
 
     NSString *key = [specifier propertyForKey:@"key"];
-
     if ([key isEqualToString:@"enabled"] || [key isEqualToString:@"hapticFeedbackEnabled"]) {
         self.navigationItem.rightBarButtonItem = self.respringButton;
     }
 
-    [preferences setObject:value forKey:key];
+    preferences[key] = value;
     [preferences writeToFile:prefPath atomically:YES];
+    
     CFStringRef post = (CFStringRef)CFBridgingRetain(specifier.properties[@"PostNotification"]);
-    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), post, NULL, NULL, YES);
+    if (post) {
+        CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), post, NULL, NULL, YES);
+        CFRelease(post);
+    }
 }
 
-
-#pragma mark - Misc
-
-//"cancel" the alpha of the NavigationBar (https://stackoverflow.com/questions/437113/how-to-get-rgb-values-from-uicolor)
-//Le but est d'obtenir la même couleur que celle passée en paramètre, sachant qu'elle sera utilisée avec un alpha (ce qui change la couleur)
--(UIColor*) getHeaderColorFromColor:(UIColor*)fromColor {
-    CGFloat a1 = 0.85; //alpha of navbar
-    //r1 = (r3 - r2 + r2*a1)/a1
+-(UIColor*)getHeaderColorFromColor:(UIColor*)fromColor {
+    CGFloat a1 = 0.85;
     UIColor *backgroundColor = [UIColor whiteColor];
-    CGFloat r2 = 0.0, g2 = 0.0, b2 = 0.0, a2 =0.0;
+    CGFloat r2 = 0.0, g2 = 0.0, b2 = 0.0, a2 = 0.0;
     [backgroundColor getRed:&r2 green:&g2 blue:&b2 alpha:&a2];
 
-    CGFloat r3 = 0.0, g3 = 0.0, b3 = 0.0, a3 =0.0;
+    CGFloat r3 = 0.0, g3 = 0.0, b3 = 0.0, a3 = 0.0;
     [fromColor getRed:&r3 green:&g3 blue:&b3 alpha:&a3];
 
     CGFloat r1 = (r3 - r2 + r2 * a1) / a1;
@@ -188,5 +202,4 @@ static NSInteger headerPaddingLeftRight = 10;
 
     return [UIColor colorWithRed:r1 green:g1 blue:b1 alpha:1];
 }
-
 @end
