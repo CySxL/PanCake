@@ -11,6 +11,8 @@ static NSInteger headerPaddingLeftRight = 10;
 
 @interface PCPrefsListController ()
 @property (nonatomic, retain) UIColor *savedTintColor;
+@property (nonatomic, retain) NSMutableDictionary *respringBaseline;
+@property (nonatomic, retain) NSMutableSet *pendingRespringKeys;
 @end
 
 @implementation PCPrefsListController
@@ -72,15 +74,17 @@ static NSInteger headerPaddingLeftRight = 10;
 }
 
 - (void)respring:(id)sender {
-    // Resolve killall through the NSString jbroot() variant, then hand posix_spawn a
-    // guaranteed-valid C path via fileSystemRepresentation (avoids relying on a
-    // C-string jbroot() overload existing in the SDK).
+    // jbroot() has no C-string form here, so translate as NSString first.
     const char *killallPath = [jbroot(@"/usr/bin/killall") fileSystemRepresentation];
     const char *argv[] = {"killall", "-9", "SpringBoard", NULL};
     pid_t pid = 0;
-    if (posix_spawn(&pid, killallPath, NULL, NULL, (char *const *)argv, NULL) == 0) {
-        waitpid(pid, NULL, 0);
+    if (posix_spawn(&pid, killallPath, NULL, NULL, (char *const *)argv, NULL) != 0) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Respring failed" message:nil preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+        [self presentViewController:alert animated:YES completion:nil];
+        return;
     }
+    waitpid(pid, NULL, 0);
 }
 
 -(void)setupNavigationTitleView {
@@ -163,28 +167,51 @@ static NSInteger headerPaddingLeftRight = 10;
 
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
     [super setPreferenceValue:value specifier:specifier];
-    
+
+    NSString *key = [specifier propertyForKey:@"key"];
+    if (!key) return;
+
     NSDictionary *existingPrefs = [NSDictionary dictionaryWithContentsOfFile:prefPath];
     NSUInteger capacity = existingPrefs ? existingPrefs.count + 1 : 1;
     NSMutableDictionary *preferences = [[NSMutableDictionary alloc] initWithCapacity:capacity];
-    
+
     if (existingPrefs) {
         [preferences addEntriesFromDictionary:existingPrefs];
     }
 
-    NSString *key = [specifier propertyForKey:@"key"];
-    if ([key isEqualToString:@"enabled"] || [key isEqualToString:@"hapticFeedbackEnabled"]) {
-        self.navigationItem.rightBarButtonItem = self.respringButton;
-    }
+    [self updateRespringButtonForKey:key value:value previous:existingPrefs[key] specifier:specifier];
 
     preferences[key] = value;
     [preferences writeToFile:prefPath atomically:YES];
-    
+
     CFStringRef post = (CFStringRef)CFBridgingRetain(specifier.properties[@"PostNotification"]);
     if (post) {
         CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), post, NULL, NULL, YES);
         CFRelease(post);
     }
+}
+
+// Only these three are read at load time. The button stays while any of them
+// differs from what it was when the page opened, and goes once they all match.
+- (void)updateRespringButtonForKey:(NSString *)key value:(id)value previous:(id)previous specifier:(PSSpecifier *)specifier {
+    if (![@[@"enabled", @"hapticFeedbackEnabled", @"springboardInjectionEnabled"] containsObject:key]) return;
+
+    if (!self.respringBaseline) self.respringBaseline = [NSMutableDictionary dictionary];
+    if (!self.pendingRespringKeys) self.pendingRespringKeys = [NSMutableSet set];
+
+    if (!self.respringBaseline[key]) {
+        id baseline = previous ?: [specifier propertyForKey:@"default"];
+        self.respringBaseline[key] = baseline ?: [NSNull null];
+    }
+
+    id baseline = self.respringBaseline[key];
+    if (![baseline isEqual:[NSNull null]] && [value isEqual:baseline]) {
+        [self.pendingRespringKeys removeObject:key];
+    } else {
+        [self.pendingRespringKeys addObject:key];
+    }
+
+    self.navigationItem.rightBarButtonItem = self.pendingRespringKeys.count > 0 ? self.respringButton : nil;
 }
 
 -(UIColor*)getHeaderColorFromColor:(UIColor*)fromColor {
