@@ -9,6 +9,7 @@ BOOL springboardInjectionEnabled;
 NSInteger hapticFeedbackStrength;
 NSString *appName;
 BOOL shouldRecognizeSimultaneousGestures;
+BOOL appIsMessenger;
 
 static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
     CGPoint velocity = [panGest velocityInView:panGest.view];
@@ -29,11 +30,10 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
     if (!viewController || !viewController.viewLoaded) return;
 
     UIView *viewForGesture = viewController.view;
-    BOOL isNotRootViewController = self.viewControllers.count > 0 && viewController != self.viewControllers[0];
 
-    // --- Back gesture on whole page (interactive dismiss) ---
-    if (backGestureOnWholePageEnabled && isNotRootViewController) {
-        if (!viewForGesture.pancake_dismissPanGestureRecognizer) {
+    if (backGestureOnWholePageEnabled) {
+        BOOL isNotRootViewController = self.viewControllers.count > 0 && viewController != self.viewControllers[0];
+        if (isNotRootViewController && !viewForGesture.pancake_dismissPanGestureRecognizer) {
             if ([self._cachedInteractionController respondsToSelector:@selector(handleNavigationTransition:)]) {
                 UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self._cachedInteractionController action:@selector(handleNavigationTransition:)];
                 pan.delegate = self;
@@ -43,7 +43,6 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
         }
     }
 
-    // --- Restore previous page (swipe back in from the trailing edge) ---
     if (restorePreviousVCEnabled) {
         if (!viewForGesture.pancake_pushBackPoppedVCEdgePanGestureRecognizer) {
             UIScreenEdgePanGestureRecognizer *edge = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self action:@selector(pancake_handlePushBackGesture:)];
@@ -56,7 +55,6 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
     }
 }
 
-// Capture the popped controller so the restore gesture can push it back.
 - (UIViewController *)popViewControllerAnimated:(BOOL)animated {
     UIViewController *popped = %orig;
     if (restorePreviousVCEnabled && popped) {
@@ -65,7 +63,6 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
     return popped;
 }
 
-// A normal push invalidates any stored popped controller (unless it is the restore itself).
 - (void)pushViewController:(UIViewController *)viewController animated:(BOOL)animated {
     if (viewController != self.pancake_poppedViewController) {
         self.pancake_poppedViewController = nil;
@@ -98,15 +95,13 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
 
 %new
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    if (shouldRecognizeSimultaneousGestures) {
-        if (gestureRecognizer == gestureRecognizer.view.pancake_dismissPanGestureRecognizer) {
-            if ([appName isEqualToString:@"com.facebook.Messenger"]) {
-                return panGestureIsSwipingLeftToRight((UIPanGestureRecognizer *)gestureRecognizer.view.pancake_dismissPanGestureRecognizer);
-            }
-            return YES;
-        }
-    }
-    return NO;
+    if (!shouldRecognizeSimultaneousGestures) return NO;
+
+    UIPanGestureRecognizer *dismissPan = gestureRecognizer.view.pancake_dismissPanGestureRecognizer;
+    if (gestureRecognizer != dismissPan) return NO;
+
+    // Messenger has its own horizontal pan on the same view.
+    return appIsMessenger ? panGestureIsSwipingLeftToRight(dismissPan) : YES;
 }
 
 %new
@@ -133,7 +128,6 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
 -(void)_finishInteractiveTransition:(double)arg1 transitionContext:(id)arg2 {
     %orig;
     if (hapticFeedbackEnabled) {
-        // Five distinct intensities (labels: Soft, Light, Rigid, Medium, Heavy).
         UIImpactFeedbackStyle style = UIImpactFeedbackStyleLight;
         switch (hapticFeedbackStrength) {
             case 0: style = UIImpactFeedbackStyleSoft;   break;
@@ -221,11 +215,9 @@ static BOOL tweakShouldLoad(void) {
                 }
             }
 
-            // Only init the gesture group if not blacklisted and at least one gesture feature is on.
             if (appName && !isBlacklisted && (backGestureOnWholePageEnabled || restorePreviousVCEnabled)) {
-                if ([appName isEqualToString:@"com.apple.MobileSMS"] || [appName isEqualToString:@"com.facebook.Messenger"]) {
-                    shouldRecognizeSimultaneousGestures = YES;
-                }
+                appIsMessenger = [appName isEqualToString:@"com.facebook.Messenger"];
+                shouldRecognizeSimultaneousGestures = appIsMessenger || [appName isEqualToString:@"com.apple.MobileSMS"];
                 %init(PanCake);
             }
 
