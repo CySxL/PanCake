@@ -126,12 +126,6 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
 %hook UINavigationController
 %property (nonatomic, retain) UIViewController *pancake_poppedViewController;
 %end
-
-%hook _UINavigationInteractiveTransitionBase
--(void)handleNavigationTransition:(UIPanGestureRecognizer*)arg1 {
-    %orig;
-}
-%end
 %end
 
 %group HapticFeedback
