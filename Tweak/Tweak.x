@@ -168,6 +168,34 @@ static BOOL tweakShouldLoad(void) {
     return !isFileProvider && (isApplication || isSpringBoard) && !skip;
 }
 
+static BOOL appIsBlacklisted(NSString *bundleID) {
+    if (!bundleID) return NO;
+
+    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PLIST_FILE];
+    if (![dict isKindOfClass:[NSDictionary class]]) return NO;
+
+    id blacklisted = dict[@"blacklistedApps"];
+    if (blacklisted) {
+        return [blacklisted isKindOfClass:[NSArray class]] && [blacklisted containsObject:bundleID];
+    }
+
+    // Before 2.7 each bundle id was its own key.
+    id legacy = dict[bundleID];
+    if ([legacy isKindOfClass:[NSNumber class]] || [legacy isKindOfClass:[NSString class]]) {
+        return [legacy boolValue];
+    }
+    return NO;
+}
+
+static void writeDefaultBlacklist(void) {
+    NSArray *defaultBlacklistedApps = @[
+        @"com.atebits.Tweetie2", @"com.burbn.instagram", @"com.facebook.Facebook",
+        @"com.christianselig.Apollo", @"ph.telegra.Telegraph", @"com.reddit.Reddit",
+        @"com.spotify.client", @"com.hegenberg.BetterTouchToolRemote", @"com.intsig.CamScanner"
+    ];
+    [@{@"blacklistedApps": defaultBlacklistedApps} writeToFile:PLIST_FILE atomically:YES];
+}
+
 %ctor {
     @autoreleasepool {
         if (!tweakShouldLoad()) return;
@@ -188,31 +216,10 @@ static BOOL tweakShouldLoad(void) {
             }
 
             BOOL isBlacklisted = NO;
-            NSFileManager *fileManager = [NSFileManager defaultManager];
-
-            if (![fileManager fileExistsAtPath:PLIST_FILE]) {
-                NSArray *defaultBlacklistedApps = @[
-                    @"com.atebits.Tweetie2", @"com.burbn.instagram", @"com.facebook.Facebook",
-                    @"com.christianselig.Apollo", @"ph.telegra.Telegraph", @"com.reddit.Reddit",
-                    @"com.spotify.client", @"com.hegenberg.BetterTouchToolRemote", @"com.intsig.CamScanner"
-                ];
-                NSMutableDictionary *plistDict = [[NSMutableDictionary alloc] initWithCapacity:1];
-                plistDict[@"blacklistedApps"] = defaultBlacklistedApps;
-                [plistDict writeToFile:PLIST_FILE atomically:YES];
+            if (![[NSFileManager defaultManager] fileExistsAtPath:PLIST_FILE]) {
+                writeDefaultBlacklist();
             } else {
-                NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PLIST_FILE];
-                if (dict) {
-                    if (dict[@"blacklistedApps"]) {
-                        NSArray *blacklisted = dict[@"blacklistedApps"];
-                        if ([blacklisted containsObject:appName]) {
-                            isBlacklisted = YES;
-                        }
-                    } else {
-                        if (dict[appName] && [dict[appName] boolValue]) {
-                            isBlacklisted = YES;
-                        }
-                    }
-                }
+                isBlacklisted = appIsBlacklisted(appName);
             }
 
             if (appName && !isBlacklisted && (backGestureOnWholePageEnabled || restorePreviousVCEnabled)) {
