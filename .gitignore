@@ -8,3 +8,5 @@ obj
 *.code-workspace
 RenameProject.sh
 *.acorn
+note.md*
+note-archive/
