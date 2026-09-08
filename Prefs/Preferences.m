@@ -8,11 +8,17 @@
 
 static NSInteger headerPaddingTopBottom = 40;
 static NSInteger headerPaddingLeftRight = 10;
+static const CGFloat headerHeight = 200;
+
+// The offset the title crossfaded at on the pre-notch device this was tuned on,
+// where the top inset was a fixed 64. Measured from rest so it holds anywhere.
+static const CGFloat titleCrossfadeOffset = 134;
 
 @interface PCPrefsListController ()
 @property (nonatomic, retain) UIColor *savedTintColor;
 @property (nonatomic, retain) NSMutableDictionary *respringBaseline;
 @property (nonatomic, retain) NSMutableSet *pendingRespringKeys;
+@property (nonatomic) BOOL iconShown;
 @end
 
 @implementation PCPrefsListController
@@ -123,8 +129,8 @@ static NSInteger headerPaddingLeftRight = 10;
 }
 
 -(void)setupHeaderView {
-    self.headerView = [[UIView alloc] initWithFrame:CGRectMake(0,0,200,200)];
-    self.headerImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0,0,200,200)];
+    self.headerView = [[UIView alloc] initWithFrame:CGRectMake(0,0,headerHeight,headerHeight)];
+    self.headerImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0,0,headerHeight,headerHeight)];
     self.headerImageView.contentMode = UIViewContentModeScaleAspectFill;
     self.headerImageView.image = [UIImage imageWithContentsOfFile:jbroot(@"/Library/PreferenceBundles/PanCakePrefs.bundle/header.png")];
     self.headerImageView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -142,20 +148,22 @@ static NSInteger headerPaddingLeftRight = 10;
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     CGFloat offsetY = scrollView.contentOffset.y;
-    if (offsetY > 70) {
+    CGFloat topInset = self.table.adjustedContentInset.top;
+
+    BOOL showIcon = (offsetY + topInset) > titleCrossfadeOffset;
+    if (showIcon != self.iconShown) {
+        self.iconShown = showIcon;
         [UIView animateWithDuration:0.2 animations:^{
-            self.iconView.alpha = 1.0;
-            self.titleLabel.alpha = 0.0;
-        }];
-    } else {
-        [UIView animateWithDuration:0.2 animations:^{
-            self.iconView.alpha = 0.0;
-            self.titleLabel.alpha = 1.0;
+            self.iconView.alpha = showIcon ? 1.0 : 0.0;
+            self.titleLabel.alpha = showIcon ? 0.0 : 1.0;
         }];
     }
-    
+
     if (offsetY > -headerPaddingTopBottom/2) offsetY = -headerPaddingTopBottom/2;
-    self.headerImageView.frame = CGRectMake(headerPaddingLeftRight, offsetY + 64 + headerPaddingTopBottom, self.headerView.frame.size.width - headerPaddingLeftRight*2, 200 - offsetY - 64 - headerPaddingTopBottom*2);
+    self.headerImageView.frame = CGRectMake(headerPaddingLeftRight,
+                                            offsetY + topInset + headerPaddingTopBottom,
+                                            self.headerView.frame.size.width - headerPaddingLeftRight*2,
+                                            headerHeight - offsetY - topInset - headerPaddingTopBottom*2);
 }
 
 - (double)tableView:(UITableView*)tableView heightForHeaderInSection:(NSInteger)section {
