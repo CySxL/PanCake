@@ -53,8 +53,6 @@ static const CGFloat titleCrossfadeOffset = 134;
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    CGRect frame = self.table.bounds;
-    frame.origin.y = -frame.size.height;
 
     UINavigationBar *navBar = self.navigationController.navigationController.navigationBar ?: self.navigationController.navigationBar;
     
