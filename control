@@ -1,6 +1,6 @@
 Package: com.anthopak.pancake
 Name: PanCake (Roothide)
-Version: 2.11
+Version: 3.0.0
 Architecture: iphoneos-arm64
 Depends: firmware (>= 15.0), mobilesubstrate, ws.hbang.common (>= 1.14), com.opa334.altlist
 Conflicts: com.anthopak.pancake-rootless
