@@ -269,16 +269,17 @@ static const CGFloat titleCrossfadeOffset = 134;
 - (void)applySpecifier:(PSSpecifier *)specifier {
     NSBundle *bundle = [NSBundle bundleForClass:[self class]];
 
+    // Both are cleared when the row has none, or a reused cell keeps the last row's.
     NSString *subtitle = [specifier propertyForKey:@"subtitle"];
-    if ([subtitle isKindOfClass:[NSString class]]) {
-        self.detailTextLabel.text = [bundle localizedStringForKey:subtitle value:subtitle table:@"Prefs"];
-    }
+    self.detailTextLabel.text = [subtitle isKindOfClass:[NSString class]]
+        ? [bundle localizedStringForKey:subtitle value:subtitle table:@"Prefs"]
+        : nil;
 
     // 58px images, so the @2x suffix is what gets them drawn at the 29pt Settings uses.
     NSString *icon = [specifier propertyForKey:@"icon"];
-    if ([icon isKindOfClass:[NSString class]]) {
-        self.imageView.image = [UIImage imageWithContentsOfFile:[bundle.bundlePath stringByAppendingPathComponent:icon]];
-    }
+    self.imageView.image = [icon isKindOfClass:[NSString class]]
+        ? [UIImage imageWithContentsOfFile:[bundle.bundlePath stringByAppendingPathComponent:icon]]
+        : nil;
 }
 
 @end
