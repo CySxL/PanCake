@@ -1,5 +1,6 @@
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
+#import <Preferences/PSTableCell.h>
 
 @interface PCPrefsListController : PSListController
 
@@ -10,5 +11,10 @@
 @property (nonatomic, retain) UIImageView *headerImageView;
 
 - (void)respring:(id)sender;
+- (void)openLink:(PSSpecifier *)specifier;
 
+@end
+
+// Stands in for CepheiPrefs' HBLinkTableCell, which this bundle stopped linking.
+@interface PCLinkTableCell : PSTableCell
 @end

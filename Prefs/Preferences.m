@@ -94,6 +94,19 @@ static const CGFloat titleCrossfadeOffset = 134;
     waitpid(pid, NULL, 0);
 }
 
+- (void)openLink:(PSSpecifier *)specifier {
+    NSString *string = [specifier propertyForKey:@"url"];
+    if (![string isKindOfClass:[NSString class]]) return;
+
+    NSURL *url = [NSURL URLWithString:string];
+    if (![url.scheme isEqualToString:@"http"] && ![url.scheme isEqualToString:@"https"]) return;
+
+    NSIndexPath *selected = self.table.indexPathForSelectedRow;
+    if (selected) [self.table deselectRowAtIndexPath:selected animated:YES];
+
+    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+}
+
 -(void)setupNavigationTitleView {
     self.navigationItem.titleView = [UIView new];
     self.titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0,0,10,10)];
@@ -238,4 +251,36 @@ static const CGFloat titleCrossfadeOffset = 134;
 
     return [UIColor colorWithRed:r1 green:g1 blue:b1 alpha:1];
 }
+@end
+
+@implementation PCLinkTableCell
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier specifier:(PSSpecifier *)specifier {
+    self = [super initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:reuseIdentifier specifier:specifier];
+    if (self) {
+        [self applySpecifier:specifier];
+    }
+    return self;
+}
+
+- (void)refreshCellContentsWithSpecifier:(PSSpecifier *)specifier {
+    [super refreshCellContentsWithSpecifier:specifier];
+    [self applySpecifier:specifier];
+}
+
+- (void)applySpecifier:(PSSpecifier *)specifier {
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+
+    NSString *subtitle = [specifier propertyForKey:@"subtitle"];
+    if ([subtitle isKindOfClass:[NSString class]]) {
+        self.detailTextLabel.text = [bundle localizedStringForKey:subtitle value:subtitle table:@"Prefs"];
+    }
+
+    // 58px images, so the @2x suffix is what gets them drawn at the 29pt Settings uses.
+    NSString *icon = [specifier propertyForKey:@"icon"];
+    if ([icon isKindOfClass:[NSString class]]) {
+        self.imageView.image = [UIImage imageWithContentsOfFile:[bundle.bundlePath stringByAppendingPathComponent:icon]];
+    }
+}
+
 @end
