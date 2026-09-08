@@ -123,11 +123,14 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
 %end
 %end
 
+// Its own group so that it still runs in apps that are blacklisted for gestures.
 %group HapticFeedback
 %hook UINavigationController
 -(void)_finishInteractiveTransition:(double)arg1 transitionContext:(id)arg2 {
     %orig;
-    if (hapticFeedbackEnabled) {
+    // Also gated on the gesture switch: with that off the only thing finishing an
+    // interactive transition is Apple's own edge swipe, which is not ours to change.
+    if (hapticFeedbackEnabled && backGestureOnWholePageEnabled) {
         UIImpactFeedbackStyle style = UIImpactFeedbackStyleLight;
         switch (hapticFeedbackStrength) {
             case 0: style = UIImpactFeedbackStyleSoft;   break;
