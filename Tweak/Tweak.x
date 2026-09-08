@@ -7,7 +7,6 @@ BOOL restorePreviousVCEnabled;
 BOOL hapticFeedbackEnabled;
 BOOL springboardInjectionEnabled;
 NSInteger hapticFeedbackStrength;
-NSString *appName;
 BOOL shouldRecognizeSimultaneousGestures;
 BOOL appIsMessenger;
 
@@ -26,13 +25,16 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
 %hook UINavigationController
 -(void)_layoutTopViewController {
     %orig;
+    if (!backGestureOnWholePageEnabled && !restorePreviousVCEnabled) return;
+
     UIViewController *viewController = [self topViewController];
     if (!viewController || !viewController.viewLoaded) return;
 
     UIView *viewForGesture = viewController.view;
 
     if (backGestureOnWholePageEnabled) {
-        BOOL isNotRootViewController = self.viewControllers.count > 0 && viewController != self.viewControllers[0];
+        NSArray *stack = self.viewControllers;
+        BOOL isNotRootViewController = stack.count > 0 && viewController != stack[0];
         if (isNotRootViewController && !viewForGesture.pancake_dismissPanGestureRecognizer) {
             if ([self._cachedInteractionController respondsToSelector:@selector(handleNavigationTransition:)]) {
                 UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self._cachedInteractionController action:@selector(handleNavigationTransition:)];
@@ -64,7 +66,8 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
 }
 
 - (void)pushViewController:(UIViewController *)viewController animated:(BOOL)animated {
-    if (viewController != self.pancake_poppedViewController) {
+    UIViewController *popped = self.pancake_poppedViewController;
+    if (popped && viewController != popped) {
         self.pancake_poppedViewController = nil;
     }
     %orig;
@@ -106,10 +109,9 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
 
 %new
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
-    if (gestureRecognizer == gestureRecognizer.view.pancake_dismissPanGestureRecognizer) {
-        if ([touch.view isKindOfClass:[UISlider class]]) return NO;
-    }
-    return YES;
+    // Ordered so that a touch anywhere but a slider costs no associated-object read.
+    if (![touch.view isKindOfClass:[UISlider class]]) return YES;
+    return gestureRecognizer != gestureRecognizer.view.pancake_dismissPanGestureRecognizer;
 }
 %end
 
@@ -153,22 +155,20 @@ static BOOL tweakShouldLoad(void) {
     NSString *executablePath = args[0];
     NSString *processName = [executablePath lastPathComponent];
 
+    // Every process that links UIKit runs this, so the processes we want nothing to
+    // do with leave before the string work the rest of the test needs.
     BOOL isApplication = [executablePath containsString:@"/Application/"] || [executablePath containsString:@"/Applications/"];
-    BOOL isSpringBoard = [processName isEqualToString:@"SpringBoard"];
-    BOOL isFileProvider = [[processName lowercaseString] containsString:@"fileprovider"];
+    if (!isApplication && ![processName isEqualToString:@"SpringBoard"]) return NO;
 
-    BOOL skip = [executablePath containsString:@".appex/"];
-    if (!skip) {
-        NSString *skipTargets[] = {@"AdSheet", @"CoreAuthUI", @"InCallService", @"MessagesNotificationViewService", @"PassbookUIService"};
-        size_t skipCount = sizeof(skipTargets) / sizeof(skipTargets[0]);
-        for (size_t i = 0; i < skipCount; i++) {
-            if ([processName isEqualToString:skipTargets[i]]) {
-                skip = YES;
-                break;
-            }
-        }
+    if ([executablePath containsString:@".appex/"]) return NO;
+    if ([[processName lowercaseString] containsString:@"fileprovider"]) return NO;
+
+    NSString *skipTargets[] = {@"AdSheet", @"CoreAuthUI", @"InCallService", @"MessagesNotificationViewService", @"PassbookUIService"};
+    size_t skipCount = sizeof(skipTargets) / sizeof(skipTargets[0]);
+    for (size_t i = 0; i < skipCount; i++) {
+        if ([processName isEqualToString:skipTargets[i]]) return NO;
     }
-    return !isFileProvider && (isApplication || isSpringBoard) && !skip;
+    return YES;
 }
 
 static BOOL appIsBlacklisted(NSString *bundleID) {
@@ -212,7 +212,7 @@ static void writeDefaultBlacklist(void) {
         [preferences registerBool:&springboardInjectionEnabled default:NO forKey:@"springboardInjectionEnabled"];
 
         if (enabled) {
-            appName = [[NSBundle mainBundle] bundleIdentifier];
+            NSString *appName = [[NSBundle mainBundle] bundleIdentifier];
 
             if ([appName isEqualToString:@"com.apple.springboard"] && !springboardInjectionEnabled) {
                 return;
