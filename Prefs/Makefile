@@ -6,6 +6,13 @@ $(BUNDLE_NAME)_INSTALL_PATH = /Library/PreferenceBundles
 $(BUNDLE_NAME)_FRAMEWORKS = UIKit
 $(BUNDLE_NAME)_PRIVATE_FRAMEWORKS = Preferences
 $(BUNDLE_NAME)_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -O3
+
+# Version shown on the settings page, taken from control
+PC_VERSION := $(shell sed -n 's/^Version: //p' $(THEOS_PROJECT_DIR)/control)
+ifeq ($(PC_VERSION),)
+$(error no Version line in $(THEOS_PROJECT_DIR)/control)
+endif
+$(BUNDLE_NAME)_CFLAGS += -DPACKAGE_VERSION='"$(PC_VERSION)"' 
 include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/bundle.mk
 

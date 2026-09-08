@@ -21,6 +21,7 @@ static NSInteger headerPaddingLeftRight = 10;
     self = [super init];
     if (self) {
         [[NSBundle bundleWithPath:jbroot(@"/Library/Frameworks/AltList.framework")] load];
+        self.title = @"PanCake v" PACKAGE_VERSION;
         [self setupNavigationTitleView];
         [self setupNavigationRespringButton];
     }
