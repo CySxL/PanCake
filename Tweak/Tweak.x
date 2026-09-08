@@ -218,12 +218,10 @@ static void writeDefaultBlacklist(void) {
                 return;
             }
 
-            BOOL isBlacklisted = NO;
             if (![[NSFileManager defaultManager] fileExistsAtPath:PLIST_FILE]) {
                 writeDefaultBlacklist();
-            } else {
-                isBlacklisted = appIsBlacklisted(appName);
             }
+            BOOL isBlacklisted = appIsBlacklisted(appName);
 
             if (appName && !isBlacklisted && (backGestureOnWholePageEnabled || restorePreviousVCEnabled)) {
                 appIsMessenger = [appName isEqualToString:@"com.facebook.Messenger"];
