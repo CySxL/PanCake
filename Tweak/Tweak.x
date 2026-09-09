@@ -21,6 +21,12 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
     return NO;
 }
 
+static void clearPoppedViewController(UINavigationController *navigationController) {
+    if (navigationController.pancake_poppedViewController) {
+        navigationController.pancake_poppedViewController = nil;
+    }
+}
+
 %group PanCake
 %hook UINavigationController
 -(void)_layoutTopViewController {
@@ -63,6 +69,34 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
         self.pancake_poppedViewController = popped;
     }
     return popped;
+}
+
+// A stack that changes by anything but a single pop leaves nothing worth pushing
+// back, and holding the controller past that point retains a page no stack owns.
+- (NSArray<UIViewController *> *)popToRootViewControllerAnimated:(BOOL)animated {
+    NSArray<UIViewController *> *popped = %orig;
+    if (popped.count > 0) {
+        clearPoppedViewController(self);
+    }
+    return popped;
+}
+
+- (NSArray<UIViewController *> *)popToViewController:(UIViewController *)viewController animated:(BOOL)animated {
+    NSArray<UIViewController *> *popped = %orig;
+    if (popped.count > 0) {
+        clearPoppedViewController(self);
+    }
+    return popped;
+}
+
+- (void)setViewControllers:(NSArray<UIViewController *> *)viewControllers {
+    %orig;
+    clearPoppedViewController(self);
+}
+
+- (void)setViewControllers:(NSArray<UIViewController *> *)viewControllers animated:(BOOL)animated {
+    %orig;
+    clearPoppedViewController(self);
 }
 
 - (void)pushViewController:(UIViewController *)viewController animated:(BOOL)animated {
