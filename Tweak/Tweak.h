@@ -12,9 +12,17 @@
 @interface _UINavigationInteractiveTransition : _UINavigationInteractiveTransitionBase
 @end
 
-@interface UINavigationController (Custom)<UIGestureRecognizerDelegate>
+// The gestures get their own delegate rather than the navigation controller, or an
+// app's own UINavigationController subclass shadows the delegate methods and the
+// direction filter silently stops running there.
+@interface PanCakeGestureDelegate : NSObject <UIGestureRecognizerDelegate>
+@property (nonatomic, weak) UINavigationController *navigationController;
+@end
+
+@interface UINavigationController (Custom)
 @property (strong, nonatomic) _UINavigationInteractiveTransition * _cachedInteractionController;
 @property (nonatomic, retain) UIViewController *pancake_poppedViewController;
+@property (nonatomic, retain) PanCakeGestureDelegate *pancake_gestureDelegate;
 - (void)pancake_handlePushBackGesture:(UIScreenEdgePanGestureRecognizer *)gesture;
 -(void)_finishInteractiveTransition:(double)arg1 transitionContext:(id)arg2 ;
 @end

@@ -21,6 +21,51 @@ static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
     return NO;
 }
 
+@implementation PanCakeGestureDelegate
+
+- (BOOL)gestureRecognizerShouldBegin:(UIPanGestureRecognizer *)panGestureRecognizer {
+    UIView *view = panGestureRecognizer.view;
+    if (panGestureRecognizer == view.pancake_dismissPanGestureRecognizer) {
+        // Switched off mid-session, a recognizer already attached stays attached.
+        // Refusing to begin is what makes the off position take effect there.
+        if (!enabled || !backGestureOnWholePageEnabled) return NO;
+        return panGestureIsSwipingLeftToRight(panGestureRecognizer);
+    }
+    if (panGestureRecognizer == view.pancake_pushBackPoppedVCEdgePanGestureRecognizer) {
+        if (!enabled || !restorePreviousVCEnabled) return NO;
+        return self.navigationController.pancake_poppedViewController != nil;
+    }
+    return YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    if (!shouldRecognizeSimultaneousGestures) return NO;
+
+    UIPanGestureRecognizer *dismissPan = gestureRecognizer.view.pancake_dismissPanGestureRecognizer;
+    if (gestureRecognizer != dismissPan) return NO;
+
+    // Messenger has its own horizontal pan on the same view.
+    return appIsMessenger ? panGestureIsSwipingLeftToRight(dismissPan) : YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    // Ordered so that a touch anywhere but a slider costs no associated-object read.
+    if (![touch.view isKindOfClass:[UISlider class]]) return YES;
+    return gestureRecognizer != gestureRecognizer.view.pancake_dismissPanGestureRecognizer;
+}
+
+@end
+
+static PanCakeGestureDelegate *gestureDelegateFor(UINavigationController *navigationController) {
+    PanCakeGestureDelegate *gestureDelegate = navigationController.pancake_gestureDelegate;
+    if (!gestureDelegate) {
+        gestureDelegate = [[PanCakeGestureDelegate alloc] init];
+        gestureDelegate.navigationController = navigationController;
+        navigationController.pancake_gestureDelegate = gestureDelegate;
+    }
+    return gestureDelegate;
+}
+
 static void clearPoppedViewController(UINavigationController *navigationController) {
     if (navigationController.pancake_poppedViewController) {
         navigationController.pancake_poppedViewController = nil;
@@ -44,7 +89,7 @@ static void clearPoppedViewController(UINavigationController *navigationControll
         if (isNotRootViewController && !viewForGesture.pancake_dismissPanGestureRecognizer) {
             if ([self._cachedInteractionController respondsToSelector:@selector(handleNavigationTransition:)]) {
                 UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self._cachedInteractionController action:@selector(handleNavigationTransition:)];
-                pan.delegate = self;
+                pan.delegate = gestureDelegateFor(self);
                 viewForGesture.pancake_dismissPanGestureRecognizer = pan;
                 [viewForGesture addGestureRecognizer:pan];
             }
@@ -56,7 +101,7 @@ static void clearPoppedViewController(UINavigationController *navigationControll
             UIScreenEdgePanGestureRecognizer *edge = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self action:@selector(pancake_handlePushBackGesture:)];
             BOOL deviceIsRTL = [UIApplication sharedApplication].userInterfaceLayoutDirection == UIUserInterfaceLayoutDirectionRightToLeft;
             edge.edges = deviceIsRTL ? UIRectEdgeLeft : UIRectEdgeRight;
-            edge.delegate = self;
+            edge.delegate = gestureDelegateFor(self);
             viewForGesture.pancake_pushBackPoppedVCEdgePanGestureRecognizer = edge;
             [viewForGesture addGestureRecognizer:edge];
         }
@@ -118,39 +163,6 @@ static void clearPoppedViewController(UINavigationController *navigationControll
     }
 }
 
-%new
-- (BOOL)gestureRecognizerShouldBegin:(UIPanGestureRecognizer *)panGestureRecognizer {
-    UIView *view = panGestureRecognizer.view;
-    if (panGestureRecognizer == view.pancake_dismissPanGestureRecognizer) {
-        // Switched off mid-session, a recognizer already attached stays attached.
-        // Refusing to begin is what makes the off position take effect there.
-        if (!enabled || !backGestureOnWholePageEnabled) return NO;
-        return panGestureIsSwipingLeftToRight(panGestureRecognizer);
-    }
-    if (panGestureRecognizer == view.pancake_pushBackPoppedVCEdgePanGestureRecognizer) {
-        if (!enabled || !restorePreviousVCEnabled) return NO;
-        return self.pancake_poppedViewController != nil;
-    }
-    return YES;
-}
-
-%new
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    if (!shouldRecognizeSimultaneousGestures) return NO;
-
-    UIPanGestureRecognizer *dismissPan = gestureRecognizer.view.pancake_dismissPanGestureRecognizer;
-    if (gestureRecognizer != dismissPan) return NO;
-
-    // Messenger has its own horizontal pan on the same view.
-    return appIsMessenger ? panGestureIsSwipingLeftToRight(dismissPan) : YES;
-}
-
-%new
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
-    // Ordered so that a touch anywhere but a slider costs no associated-object read.
-    if (![touch.view isKindOfClass:[UISlider class]]) return YES;
-    return gestureRecognizer != gestureRecognizer.view.pancake_dismissPanGestureRecognizer;
-}
 %end
 
 %hook UIView
@@ -160,6 +172,7 @@ static void clearPoppedViewController(UINavigationController *navigationControll
 
 %hook UINavigationController
 %property (nonatomic, retain) UIViewController *pancake_poppedViewController;
+%property (nonatomic, retain) PanCakeGestureDelegate *pancake_gestureDelegate;
 %end
 %end
 
