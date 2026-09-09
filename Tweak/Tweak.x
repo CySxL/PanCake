@@ -31,7 +31,7 @@ static void clearPoppedViewController(UINavigationController *navigationControll
 %hook UINavigationController
 -(void)_layoutTopViewController {
     %orig;
-    if (!backGestureOnWholePageEnabled && !restorePreviousVCEnabled) return;
+    if (!enabled || (!backGestureOnWholePageEnabled && !restorePreviousVCEnabled)) return;
 
     UIViewController *viewController = [self topViewController];
     if (!viewController || !viewController.viewLoaded) return;
@@ -122,9 +122,13 @@ static void clearPoppedViewController(UINavigationController *navigationControll
 - (BOOL)gestureRecognizerShouldBegin:(UIPanGestureRecognizer *)panGestureRecognizer {
     UIView *view = panGestureRecognizer.view;
     if (panGestureRecognizer == view.pancake_dismissPanGestureRecognizer) {
+        // Switched off mid-session, a recognizer already attached stays attached.
+        // Refusing to begin is what makes the off position take effect there.
+        if (!enabled || !backGestureOnWholePageEnabled) return NO;
         return panGestureIsSwipingLeftToRight(panGestureRecognizer);
     }
     if (panGestureRecognizer == view.pancake_pushBackPoppedVCEdgePanGestureRecognizer) {
+        if (!enabled || !restorePreviousVCEnabled) return NO;
         return self.pancake_poppedViewController != nil;
     }
     return YES;
@@ -166,7 +170,7 @@ static void clearPoppedViewController(UINavigationController *navigationControll
     %orig;
     // Also gated on the gesture switch: with that off the only thing finishing an
     // interactive transition is Apple's own edge swipe, which is not ours to change.
-    if (hapticFeedbackEnabled && backGestureOnWholePageEnabled) {
+    if (enabled && hapticFeedbackEnabled && backGestureOnWholePageEnabled) {
         UIImpactFeedbackStyle style = UIImpactFeedbackStyleLight;
         switch (hapticFeedbackStrength) {
             case 0: style = UIImpactFeedbackStyleSoft;   break;
