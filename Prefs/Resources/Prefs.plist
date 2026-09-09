@@ -271,7 +271,7 @@ Some apps are already added on the list by default for your convenience.</string
             <key>label</key>
             <string>CySxL</string>
             <key>subtitle</key>
-            <string>GITHUB</string>
+            <string>ROOTHIDE_MAINTAINER</string>
             <key>url</key>
             <string>https://github.com/CySxL</string>
         </dict>
