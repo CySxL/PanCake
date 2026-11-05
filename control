@@ -1,12 +1,16 @@
 Package: com.anthopak.pancake
-Name: PanCake (Roothide)
+Name: PanCake
 Version: 3.1.0
 Architecture: iphoneos-arm64
 Depends: firmware (>= 15.0), mobilesubstrate, ws.hbang.common (>= 1.14), com.opa334.altlist
 Conflicts: com.anthopak.pancake-rootless
 Replaces: com.anthopak.pancake-rootless
 Provides: com.anthopak.pancake-rootless
-Description: Interactive dismiss gesture on the whole screen in all apps and ability to restore previous page natively built for Roothide
+Description: Swipe back from anywhere on the screen in any app, and bring back the page just left.
+ * go back with a swipe anywhere on the page.
+ * restore the previous page with a swipe in from the right edge.
+ * haptic feedback on the back gesture, in five strengths.
+ * disable in selected apps.
 Author: AnthoPak <anthopakdev@gmail.com>
 Maintainer: CySxL <15531137+CySxL@users.noreply.github.com>
 Section: Tweaks
