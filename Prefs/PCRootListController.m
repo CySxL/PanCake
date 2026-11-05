@@ -3,7 +3,7 @@
 #import "PCRootListController.h"
 #import <roothide.h>
 
-#define prefPath jbroot(@"/var/mobile/Library/Preferences/com.anthopak.pancake.plist")
+#define prefPath jbroot(@"/var/mobile/Library/Preferences/com.cysxl.pancake.plist")
 
 #if defined(THEOS_PACKAGE_SCHEME_ROOTHIDE)
 #define PACKAGE_SCHEME "roothide"
@@ -283,7 +283,7 @@ static UIImage *pcSymbol(NSString *name, CGFloat side) {
             if ([key isEqualToString:@"hapticFeedbackEnabled"]) self.hapticSwitch = specifier;
             else if ([key isEqualToString:@"hapticFeedbackStrength"] || [key isEqualToString:@"hapticInDisabledApps"]) [self.hapticRows addObject:specifier];
         }
-        id haptic = [[[NSUserDefaults alloc] initWithSuiteName:@"com.anthopak.pancake"] objectForKey:@"hapticFeedbackEnabled"];
+        id haptic = [[[NSUserDefaults alloc] initWithSuiteName:@"com.cysxl.pancake"] objectForKey:@"hapticFeedbackEnabled"];
         if ([haptic isKindOfClass:[NSNumber class]] && ![haptic boolValue]) [specifiers removeObjectsInArray:self.hapticRows];
         // Prefs.plist opens with a group, so the header gets a section of its own.
         PSSpecifier *header = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:NULL get:NULL detail:nil cell:PSStaticTextCell edit:nil];

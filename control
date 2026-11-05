@@ -1,11 +1,11 @@
-Package: com.anthopak.pancake
+Package: com.cysxl.pancake
 Name: PanCake
 Version: 3.2.2
 Architecture: iphoneos-arm64
 Depends: firmware (>= 15.0), mobilesubstrate, com.opa334.altlist
-Conflicts: com.anthopak.pancake-rootless
-Replaces: com.anthopak.pancake-rootless
-Provides: com.anthopak.pancake-rootless
+Conflicts: com.anthopak.pancake, com.anthopak.pancake-rootless
+Replaces: com.anthopak.pancake, com.anthopak.pancake-rootless
+Provides: com.anthopak.pancake, com.anthopak.pancake-rootless
 Description: Swipe back from anywhere on the screen in any app, and bring back the page just left.
  * go back with a swipe anywhere on the page.
  * restore the previous page with a swipe in from the right edge.

@@ -12,13 +12,13 @@
 		</dict>
 		<dict>
 			<key>PostNotification</key>
-			<string>com.anthopak.pancake/ReloadPrefs</string>
+			<string>com.cysxl.pancake/ReloadPrefs</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<true/>
 			<key>defaults</key>
-			<string>com.anthopak.pancake</string>
+			<string>com.cysxl.pancake</string>
 			<key>key</key>
 			<string>enabled</string>
 			<key>label</key>
@@ -34,13 +34,13 @@
 		</dict>
 		<dict>
 			<key>PostNotification</key>
-			<string>com.anthopak.pancake/ReloadPrefs</string>
+			<string>com.cysxl.pancake/ReloadPrefs</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<true/>
 			<key>defaults</key>
-			<string>com.anthopak.pancake</string>
+			<string>com.cysxl.pancake</string>
 			<key>key</key>
 			<string>backGestureOnWholePageEnabled</string>
 			<key>label</key>
@@ -48,13 +48,13 @@
 		</dict>
 		<dict>
 			<key>PostNotification</key>
-			<string>com.anthopak.pancake/ReloadPrefs</string>
+			<string>com.cysxl.pancake/ReloadPrefs</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<false/>
 			<key>defaults</key>
-			<string>com.anthopak.pancake</string>
+			<string>com.cysxl.pancake</string>
 			<key>key</key>
 			<string>restorePreviousVCEnabled</string>
 			<key>label</key>
@@ -74,7 +74,7 @@
 			<key>defaultApplicationSwitchValue</key>
 			<false/>
 			<key>defaults</key>
-			<string>com.anthopak.pancake</string>
+			<string>com.cysxl.pancake</string>
 			<key>detail</key>
 			<string>ATLApplicationListMultiSelectionController</string>
 			<key>key</key>
@@ -103,13 +103,13 @@
 		</dict>
 		<dict>
 			<key>PostNotification</key>
-			<string>com.anthopak.pancake/ReloadPrefs</string>
+			<string>com.cysxl.pancake/ReloadPrefs</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<true/>
 			<key>defaults</key>
-			<string>com.anthopak.pancake</string>
+			<string>com.cysxl.pancake</string>
 			<key>key</key>
 			<string>hapticFeedbackEnabled</string>
 			<key>label</key>
@@ -117,13 +117,13 @@
 		</dict>
 		<dict>
 			<key>PostNotification</key>
-			<string>com.anthopak.pancake/ReloadPrefs</string>
+			<string>com.cysxl.pancake/ReloadPrefs</string>
 			<key>cell</key>
 			<string>PSSegmentCell</string>
 			<key>default</key>
 			<integer>0</integer>
 			<key>defaults</key>
-			<string>com.anthopak.pancake</string>
+			<string>com.cysxl.pancake</string>
 			<key>key</key>
 			<string>hapticFeedbackStrength</string>
 			<key>validTitles</key>
@@ -145,13 +145,13 @@
 		</dict>
 		<dict>
 			<key>PostNotification</key>
-			<string>com.anthopak.pancake/ReloadPrefs</string>
+			<string>com.cysxl.pancake/ReloadPrefs</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<true/>
 			<key>defaults</key>
-			<string>com.anthopak.pancake</string>
+			<string>com.cysxl.pancake</string>
 			<key>key</key>
 			<string>hapticInDisabledApps</string>
 			<key>label</key>

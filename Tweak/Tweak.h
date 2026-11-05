@@ -2,7 +2,7 @@
 #import <roothide.h>
 #import <Foundation/Foundation.h>
 
-#define PLIST_FILE jbroot(@"/var/mobile/Library/Preferences/com.anthopak.pancake.plist")
+#define PLIST_FILE jbroot(@"/var/mobile/Library/Preferences/com.cysxl.pancake.plist")
 
 @interface _UINavigationInteractiveTransitionBase : NSObject
 -(void)handleNavigationTransition:(UIPanGestureRecognizer*)arg1 ;

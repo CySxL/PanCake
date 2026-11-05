@@ -260,7 +260,7 @@ static BOOL observingPrefs;
 
 __attribute__((destructor)) static void stopObservingPrefs(void) {
     if (!observingPrefs) return;
-    CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), &observingPrefs, CFSTR("com.anthopak.pancake/ReloadPrefs"), NULL);
+    CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), &observingPrefs, CFSTR("com.cysxl.pancake/ReloadPrefs"), NULL);
 }
 
 static BOOL appIsBlacklisted(NSDictionary *dict, NSString *bundleID) {
@@ -321,7 +321,7 @@ static NSDictionary *writeDefaultBlacklist(void) {
             }
 
             if (hooked && !observingPrefs) {
-                CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), &observingPrefs, reloadPrefs, CFSTR("com.anthopak.pancake/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+                CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), &observingPrefs, reloadPrefs, CFSTR("com.cysxl.pancake/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorCoalesce);
                 observingPrefs = YES;
             }
         }
