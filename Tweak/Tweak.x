@@ -5,6 +5,8 @@ static BOOL enabled;
 static BOOL backGestureOnWholePageEnabled;
 static BOOL restorePreviousVCEnabled;
 static BOOL hapticFeedbackEnabled;
+static BOOL hapticInDisabledApps;
+static BOOL appIsDisabled;
 static NSInteger hapticFeedbackStrength;
 static BOOL shouldRecognizeSimultaneousGestures;
 static BOOL appIsMessenger;
@@ -175,14 +177,14 @@ static void clearPoppedViewController(UINavigationController *navigationControll
 %end
 %end
 
-// Its own group so that it still runs in apps that are blacklisted for gestures.
+// Its own group so that it can still run in apps that are blacklisted for gestures.
 %group HapticFeedback
 %hook UINavigationController
 -(void)_finishInteractiveTransition:(double)arg1 transitionContext:(id)arg2 {
     %orig;
     // Also gated on the gesture switch: with that off the only thing finishing an
     // interactive transition is Apple's own edge swipe, which is not ours to change.
-    if (enabled && hapticFeedbackEnabled && backGestureOnWholePageEnabled) {
+    if (enabled && hapticFeedbackEnabled && backGestureOnWholePageEnabled && (!appIsDisabled || hapticInDisabledApps)) {
         UIImpactFeedbackStyle style = UIImpactFeedbackStyleLight;
         switch (hapticFeedbackStrength) {
             case 0: style = UIImpactFeedbackStyleSoft;   break;
@@ -259,6 +261,7 @@ static void writeDefaultBlacklist(void) {
         [preferences registerBool:&restorePreviousVCEnabled default:NO forKey:@"restorePreviousVCEnabled"];
         [preferences registerBool:&hapticFeedbackEnabled default:YES forKey:@"hapticFeedbackEnabled"];
         [preferences registerInteger:&hapticFeedbackStrength default:0 forKey:@"hapticFeedbackStrength"];
+        [preferences registerBool:&hapticInDisabledApps default:YES forKey:@"hapticInDisabledApps"];
 
         if (enabled) {
             NSString *appName = [[NSBundle mainBundle] bundleIdentifier];
@@ -266,15 +269,15 @@ static void writeDefaultBlacklist(void) {
             if (![[NSFileManager defaultManager] fileExistsAtPath:PLIST_FILE]) {
                 writeDefaultBlacklist();
             }
-            BOOL isBlacklisted = appIsBlacklisted(appName);
+            appIsDisabled = appIsBlacklisted(appName);
 
-            if (appName && !isBlacklisted && (backGestureOnWholePageEnabled || restorePreviousVCEnabled)) {
+            if (appName && !appIsDisabled && (backGestureOnWholePageEnabled || restorePreviousVCEnabled)) {
                 appIsMessenger = [appName isEqualToString:@"com.facebook.Messenger"];
                 shouldRecognizeSimultaneousGestures = appIsMessenger || [appName isEqualToString:@"com.apple.MobileSMS"];
                 %init(PanCake);
             }
 
-            if (hapticFeedbackEnabled) {
+            if (hapticFeedbackEnabled && (!appIsDisabled || hapticInDisabledApps)) {
                 %init(HapticFeedback);
             }
         }
