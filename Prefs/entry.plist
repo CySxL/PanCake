@@ -2,7 +2,7 @@
     entry = {
 		bundle = PanCakePrefs;
 		cell = PSLinkCell;
-		detail = PCPrefsListController;
+		detail = PCRootListController;
 		isController = 1;
 		label = PanCake;
 		icon = icon.png;

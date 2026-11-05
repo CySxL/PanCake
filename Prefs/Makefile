@@ -1,7 +1,7 @@
 export TARGET = iphone:clang:16.5:15.0
 export ARCHS = arm64 arm64e
 BUNDLE_NAME = PanCakePrefs
-$(BUNDLE_NAME)_FILES = Preferences.m
+$(BUNDLE_NAME)_FILES = PCRootListController.m
 $(BUNDLE_NAME)_INSTALL_PATH = /Library/PreferenceBundles
 $(BUNDLE_NAME)_FRAMEWORKS = UIKit
 $(BUNDLE_NAME)_PRIVATE_FRAMEWORKS = Preferences
