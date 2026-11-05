@@ -1,14 +1,14 @@
 #import "Tweak.h"
 
-HBPreferences *preferences;
-BOOL enabled;
-BOOL backGestureOnWholePageEnabled;
-BOOL restorePreviousVCEnabled;
-BOOL hapticFeedbackEnabled;
-BOOL springboardInjectionEnabled;
-NSInteger hapticFeedbackStrength;
-BOOL shouldRecognizeSimultaneousGestures;
-BOOL appIsMessenger;
+static HBPreferences *preferences;
+static BOOL enabled;
+static BOOL backGestureOnWholePageEnabled;
+static BOOL restorePreviousVCEnabled;
+static BOOL hapticFeedbackEnabled;
+static BOOL springboardInjectionEnabled;
+static NSInteger hapticFeedbackStrength;
+static BOOL shouldRecognizeSimultaneousGestures;
+static BOOL appIsMessenger;
 
 static BOOL panGestureIsSwipingLeftToRight(UIPanGestureRecognizer *panGest) {
     CGPoint velocity = [panGest velocityInView:panGest.view];
