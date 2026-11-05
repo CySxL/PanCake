@@ -1,6 +1,5 @@
 #import "Tweak.h"
 
-static HBPreferences *preferences;
 static BOOL enabled;
 static BOOL backGestureOnWholePageEnabled;
 static BOOL restorePreviousVCEnabled;
@@ -223,11 +222,49 @@ static BOOL tweakShouldLoad(void) {
     return YES;
 }
 
-static BOOL appIsBlacklisted(NSString *bundleID) {
-    if (!bundleID) return NO;
-
+static NSDictionary *readPrefs(void) {
     NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PLIST_FILE];
-    if (![dict isKindOfClass:[NSDictionary class]]) return NO;
+    return [dict isKindOfClass:[NSDictionary class]] ? dict : nil;
+}
+
+static BOOL prefBool(NSDictionary *dict, NSString *key, BOOL fallback) {
+    id value = dict[key];
+    return ([value isKindOfClass:[NSNumber class]] || [value isKindOfClass:[NSString class]]) ? [value boolValue] : fallback;
+}
+
+static NSInteger prefInteger(NSDictionary *dict, NSString *key, NSInteger fallback) {
+    id value = dict[key];
+    return ([value isKindOfClass:[NSNumber class]] || [value isKindOfClass:[NSString class]]) ? [value integerValue] : fallback;
+}
+
+// A missing key takes the default; a missing file is the caller's call.
+static void applyPrefs(NSDictionary *dict) {
+    enabled = prefBool(dict, @"enabled", YES);
+    backGestureOnWholePageEnabled = prefBool(dict, @"backGestureOnWholePageEnabled", YES);
+    restorePreviousVCEnabled = prefBool(dict, @"restorePreviousVCEnabled", NO);
+    hapticFeedbackEnabled = prefBool(dict, @"hapticFeedbackEnabled", YES);
+    hapticFeedbackStrength = prefInteger(dict, @"hapticFeedbackStrength", 0);
+    hapticInDisabledApps = prefBool(dict, @"hapticInDisabledApps", YES);
+}
+
+// The settings page writes the file itself before posting, so it is current here;
+// cfprefsd's own copy reaches the file about two seconds later.
+static void reloadPrefs(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSDictionary *dict = readPrefs();
+        if (dict) applyPrefs(dict);
+    });
+}
+
+static BOOL observingPrefs;
+
+__attribute__((destructor)) static void stopObservingPrefs(void) {
+    if (!observingPrefs) return;
+    CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), &observingPrefs, CFSTR("com.anthopak.pancake/ReloadPrefs"), NULL);
+}
+
+static BOOL appIsBlacklisted(NSDictionary *dict, NSString *bundleID) {
+    if (!bundleID || !dict) return NO;
 
     id blacklisted = dict[@"blacklistedApps"];
     if (blacklisted) {
@@ -242,43 +279,50 @@ static BOOL appIsBlacklisted(NSString *bundleID) {
     return NO;
 }
 
-static void writeDefaultBlacklist(void) {
+static NSDictionary *writeDefaultBlacklist(void) {
     NSArray *defaultBlacklistedApps = @[
         @"com.atebits.Tweetie2", @"com.burbn.instagram", @"com.facebook.Facebook",
         @"com.christianselig.Apollo", @"ph.telegra.Telegraph", @"com.reddit.Reddit",
         @"com.spotify.client", @"com.hegenberg.BetterTouchToolRemote", @"com.intsig.CamScanner"
     ];
-    [@{@"blacklistedApps": defaultBlacklistedApps} writeToFile:PLIST_FILE atomically:YES];
+    NSDictionary *dict = @{@"blacklistedApps": defaultBlacklistedApps};
+    [dict writeToFile:PLIST_FILE atomically:YES];
+    return dict;
 }
 
 %ctor {
     @autoreleasepool {
         if (!tweakShouldLoad()) return;
 
-        preferences = [[HBPreferences alloc] initWithIdentifier:@"com.anthopak.pancake"];
-        [preferences registerBool:&enabled default:YES forKey:@"enabled"];
-        [preferences registerBool:&backGestureOnWholePageEnabled default:YES forKey:@"backGestureOnWholePageEnabled"];
-        [preferences registerBool:&restorePreviousVCEnabled default:NO forKey:@"restorePreviousVCEnabled"];
-        [preferences registerBool:&hapticFeedbackEnabled default:YES forKey:@"hapticFeedbackEnabled"];
-        [preferences registerInteger:&hapticFeedbackStrength default:0 forKey:@"hapticFeedbackStrength"];
-        [preferences registerBool:&hapticInDisabledApps default:YES forKey:@"hapticInDisabledApps"];
+        NSDictionary *prefs = readPrefs();
+        applyPrefs(prefs);
 
         if (enabled) {
             NSString *appName = [[NSBundle mainBundle] bundleIdentifier];
 
+            // Only a file that is not there gets the defaults. An unreadable one is
+            // left alone, or every switch in it would be lost.
             if (![[NSFileManager defaultManager] fileExistsAtPath:PLIST_FILE]) {
-                writeDefaultBlacklist();
+                prefs = writeDefaultBlacklist();
             }
-            appIsDisabled = appIsBlacklisted(appName);
+            appIsDisabled = appIsBlacklisted(prefs, appName);
 
+            BOOL hooked = NO;
             if (appName && !appIsDisabled && (backGestureOnWholePageEnabled || restorePreviousVCEnabled)) {
                 appIsMessenger = [appName isEqualToString:@"com.facebook.Messenger"];
                 shouldRecognizeSimultaneousGestures = appIsMessenger || [appName isEqualToString:@"com.apple.MobileSMS"];
                 %init(PanCake);
+                hooked = YES;
             }
 
             if (hapticFeedbackEnabled && (!appIsDisabled || hapticInDisabledApps)) {
                 %init(HapticFeedback);
+                hooked = YES;
+            }
+
+            if (hooked && !observingPrefs) {
+                CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), &observingPrefs, reloadPrefs, CFSTR("com.anthopak.pancake/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+                observingPrefs = YES;
             }
         }
     }

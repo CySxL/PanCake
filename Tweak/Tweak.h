@@ -1,7 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <roothide.h>
 #import <Foundation/Foundation.h>
-#import <Cephei/HBPreferences.h>
 
 #define PLIST_FILE jbroot(@"/var/mobile/Library/Preferences/com.anthopak.pancake.plist")
 

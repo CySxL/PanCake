@@ -2,7 +2,7 @@ Package: com.anthopak.pancake
 Name: PanCake
 Version: 3.1.0
 Architecture: iphoneos-arm64
-Depends: firmware (>= 15.0), mobilesubstrate, ws.hbang.common (>= 1.14), com.opa334.altlist
+Depends: firmware (>= 15.0), mobilesubstrate, com.opa334.altlist
 Conflicts: com.anthopak.pancake-rootless
 Replaces: com.anthopak.pancake-rootless
 Provides: com.anthopak.pancake-rootless
