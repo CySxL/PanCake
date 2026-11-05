@@ -6,7 +6,7 @@ Depends: firmware (>= 15.0), mobilesubstrate, com.opa334.altlist
 Conflicts: com.anthopak.pancake, com.anthopak.pancake-rootless
 Replaces: com.anthopak.pancake, com.anthopak.pancake-rootless
 Provides: com.anthopak.pancake, com.anthopak.pancake-rootless
-Description: A roothide port and rewrite of AnthoPak's open-source PanCake.
+Description: A rewrite of AnthoPak's open-source PanCake.
  Swipe back from anywhere on the screen in any app, and bring back the page just left.
  * go back with a swipe anywhere on the page.
  * restore the previous page with a swipe in from the right edge.
