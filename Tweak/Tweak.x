@@ -5,7 +5,6 @@ static BOOL enabled;
 static BOOL backGestureOnWholePageEnabled;
 static BOOL restorePreviousVCEnabled;
 static BOOL hapticFeedbackEnabled;
-static BOOL springboardInjectionEnabled;
 static NSInteger hapticFeedbackStrength;
 static BOOL shouldRecognizeSimultaneousGestures;
 static BOOL appIsMessenger;
@@ -209,7 +208,7 @@ static BOOL tweakShouldLoad(void) {
     // Every process that links UIKit runs this, so the processes we want nothing to
     // do with leave before the string work the rest of the test needs.
     BOOL isApplication = [executablePath containsString:@"/Application/"] || [executablePath containsString:@"/Applications/"];
-    if (!isApplication && ![processName isEqualToString:@"SpringBoard"]) return NO;
+    if (!isApplication) return NO;
 
     if ([executablePath containsString:@".appex/"]) return NO;
     if ([[processName lowercaseString] containsString:@"fileprovider"]) return NO;
@@ -260,14 +259,9 @@ static void writeDefaultBlacklist(void) {
         [preferences registerBool:&restorePreviousVCEnabled default:NO forKey:@"restorePreviousVCEnabled"];
         [preferences registerBool:&hapticFeedbackEnabled default:YES forKey:@"hapticFeedbackEnabled"];
         [preferences registerInteger:&hapticFeedbackStrength default:0 forKey:@"hapticFeedbackStrength"];
-        [preferences registerBool:&springboardInjectionEnabled default:NO forKey:@"springboardInjectionEnabled"];
 
         if (enabled) {
             NSString *appName = [[NSBundle mainBundle] bundleIdentifier];
-
-            if ([appName isEqualToString:@"com.apple.springboard"] && !springboardInjectionEnabled) {
-                return;
-            }
 
             if (![[NSFileManager defaultManager] fileExistsAtPath:PLIST_FILE]) {
                 writeDefaultBlacklist();
