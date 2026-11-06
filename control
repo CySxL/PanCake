@@ -12,6 +12,6 @@ Description: A rewrite of AnthoPak's open-source PanCake.
  * restore the previous page with a swipe in from the right edge.
  * haptic feedback on the back gesture, in five strengths.
  * disable in selected apps.
-Author: AnthoPak
+Author: CySxL
 Maintainer: CySxL <15531137+CySxL@users.noreply.github.com>
 Section: Tweaks
