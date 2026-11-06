@@ -306,6 +306,7 @@ static UIImage *pcSymbol(NSString *name, CGFloat side) {
         @[@"Source Code", @"", @"https://github.com/AnthoPakPak/PanCake", @"", @"chevron.left.forwardslash.chevron.right"],
         @[@"Donate", @"", @"https://bit.ly/AnthoPakDonate", @"", @"heart"],
         @[@"CySxL", @"Maintainer · roothide Port", @"https://github.com/CySxL", @"avatar", @""],
+        @[@"Source Code", @"", @"https://github.com/CySxL/PanCake", @"", @"chevron.left.forwardslash.chevron.right"],
         @[@"Tip on Ko-fi", @"", @"https://ko-fi.com/cysxl", @"", @"cup.and.saucer"]
     ];
     PSSpecifier *previous = nil;
